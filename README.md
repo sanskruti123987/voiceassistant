@@ -196,8 +196,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 👤 Author
 
-Your Name - [@yourhandle](https://twitter.com/yourhandle)
-
 Project Link: [https://github.com/sanskruti123987/voiceassistant](https://github.com/sanskruti123987/voiceassistant)
 
 ##  Acknowledgments
