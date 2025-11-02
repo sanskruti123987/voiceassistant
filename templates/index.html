@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice Assistant</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(180deg, #27014a, #1a0523);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  /* 🌊animation background */
+  .ocean {
+    position: absolute;
+    width: 200%;
+    height: 100%;
+    background: url('https://i.imgur.com/3fJ1P8S.png') repeat-x;
+    background-size: cover;
+    animation: wave 12s linear infinite;
+    opacity: 0.6;
+    bottom: 0;
+  }
+
+  @keyframes wave {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* 🌐 Chat container */
+  .chat-container {
+    position: relative;
+    z-index: 2;
+    background: rgba(1, 1, 55, 0.421);
+    backdrop-filter: blur(10px);
+    width: 380px;
+    height: 500px;
+    border-radius: 25px;
+    padding: 20px;
+    color: rgb(131, 116, 239);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 0 25px rgba(187, 182, 173, 0.4);
+  }
+
+  .chat-box {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 10px;
+  }
+
+  .chat-message {
+    margin: 10px 0;
+    font-size: 15px;
+  }
+
+  .assistant {
+    color: #207f8b;
+  }
+
+  .user {
+    text-align: right;
+    color: #185977;
+  }
+
+  /* 🎤 Glowing sphere */
+  .sphere {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #281461dd, #11012891);
+    box-shadow: 0 0 40px rgb(83, 1, 81);
+    margin: 20px auto;
+    animation: pulse 2s infinite ease-in-out;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 40px rgba(153, 18, 226, 0.636); }
+    50% { transform: scale(1.2); box-shadow: 0 0 80px rgb(109, 18, 134); }
+  }
+
+  /* 🎙 Button */
+  button {
+    background: linear-gradient(45deg, #18304c, #1f0135);
+    border: none;
+    color: rgb(115, 165, 170);
+    padding: 12px 25px;
+    border-radius: 30px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  button:hover {
+    background: linear-gradient(45deg, #3b025f97, #010331);
+    transform: scale(1.05);
+  }
+</style>
+</head>
+<body>
+
+<div class="ocean"></div>
+
+<div class="chat-container">
+  <div class="chat-box" id="chat-box">
+    <div class="chat-message assistant">Assistant: Hello there! I’m ready to listen </div>
+  </div>
+
+  <div class="sphere" id="sphere"></div>
+
+  <button id="mic-btn">🎤 Speak</button>
+</div>
+
+<script>
+  const micBtn = document.getElementById("mic-btn");
+  const chatBox = document.getElementById("chat-box");
+  const sphere = document.getElementById("sphere");
+  let listening = false;
+
+  // 🗨 Add message to chat box
+  function addMessage(role, text) {
+    const msg = document.createElement("div");
+    msg.classList.add("chat-message", role);
+    msg.textContent = `${role === 'user' ? 'You' : 'Assistant'}: ${text}`;
+    chatBox.appendChild(msg);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  // 🎤 Voice recognition setup
+  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+  recognition.lang = "en-US";
+  recognition.interimResults = false;
+  recognition.continuous = false;
+
+  recognition.onstart = () => {
+    listening = true;
+    console.log("🎙 Voice recognition started — listening...");
+    sphere.style.animation = "pulse 0.8s infinite ease-in-out";
+    addMessage("assistant", "Listening...");
+  };
+
+  recognition.onresult = (event) => {
+    const text = event.results[0][0].transcript;
+    console.log("🗣 Recognized speech:", text);
+    addMessage("user", text);
+    processCommand(text.toLowerCase());
+  };
+
+  recognition.onerror = (event) => {
+    console.error("⚠ Speech recognition error:", event.error);
+    addMessage("assistant", "Sorry, I couldn't hear you clearly.");
+  };
+
+  recognition.onend = () => {
+    listening = false;
+    console.log("🛑 Voice recognition ended.");
+    sphere.style.animation = "pulse 2s infinite ease-in-out";
+  };
+
+  // 🧠 Send recognized text to backend Flask server
+  function processCommand(text) {
+    console.log("📦 Sending to backend API:", text);
+
+    fetch("http://localhost:5000/process", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    })
+    .then((res) => {
+      console.log("✅ Response received from backend. Status:", res.status);
+      return res.json();
+    })
+    .then((data) => {
+      console.log("🤖 Backend reply:", data.reply);
+      addMessage("assistant", data.reply);
+      speak(data.reply);
+    })
+    .catch((err) => {
+      console.error("❌ Error contacting backend:", err);
+      addMessage("assistant", "I’m having trouble connecting to the server.");
+    });
+  }
+
+  // 🔊 Assistant voice output
+  function speak(text) {
+    console.log("🔈 Speaking:", text);
+    const speech = new SpeechSynthesisUtterance(text);
+    speech.pitch = 1;
+    speech.rate = 1;
+    speech.volume = 1;
+    speech.voice = speechSynthesis.getVoices().find(v => v.name.includes("Female")) || null;
+    speechSynthesis.speak(speech);
+  }
+
+  // 🎙 Button toggle
+  micBtn.onclick = () => {
+    if (!listening) {
+      console.log("🎤 Mic button clicked — starting recognition...");
+      recognition.start();
+    } else {
+      console.log("🛑 Already listening, ignoring new click.");
+    }
+  };
+</script>
+
+</body>
+</html>

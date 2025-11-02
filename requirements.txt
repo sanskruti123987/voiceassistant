@@ -1,0 +1,10 @@
+va_final/
+│
+├── templates/
+│   └── index.html       # Frontend HTML (UI)
+│
+├── backend.py           #  Main voice assistant backend (Flask + Gemini(only for task asked for) + pyttsx3)
+├── audio_api.py         #  Mini API layer (connects frontend to backend.py)
+│
+├── requirements.txt     #  Python dependencies
+└── README.md            #  Project documentation
