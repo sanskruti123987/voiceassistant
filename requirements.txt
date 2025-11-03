@@ -8,3 +8,10 @@ va_final/
 │
 ├── requirements.txt     #  Python dependencies
 └── README.md            #  Project documentation
+
+#Flask
+#google-generativeai
+#pyttsx3
+#threading
+#jsonify
+
