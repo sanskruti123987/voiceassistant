@@ -1,38 +1,39 @@
-from flask import Flask, request, jsonify
-import datetime
-import webbrowser
-import urllib.parse
-import pyttsx3
-import google.generativeai as genai
-import threading
-from flask_cors import CORS
+from flask import Flask, request, jsonify     #flask- mini web framework for building web applications
+import datetime             #manipulate date and times
+import webbrowser       #to open web browsers (independent)
+import urllib.parse    #module provides fn to manipulate URLs
+import pyttsx3       #tts conversion lib
+import google.generativeai as genai       #directly interact with the gemini
+import threading #running multiple threads
+from flask_cors import CORS #(Cross origin resourse sharing)
 
 # ============ CONFIGURE GEMINI ============
-genai.configure(api_key="YOUR_GEMINI_API_KEY")
+genai.configure(api_key="API_KEY")   #Should be kept secret
 gemini_model = genai.GenerativeModel("gemini-flash-latest")
 
 # ============ SETUP VOICE ENGINE ============
-engine = pyttsx3.init()
-engine.setProperty('rate', 170)
-engine.setProperty('volume', 1.0)
-voices = engine.getProperty('voices')
+engine = pyttsx3.init()            #initialises the tts engine  (set property is fn of pyttsx3)
+engine.setProperty('rate', 170)           #sets the speaking speed(words per minute)
+engine.setProperty('volume', 1.0)          #sets volume to max
+voices = engine.getProperty('voices')           #get available voices on system
 engine.setProperty('voice', voices[1].id)  # Female voice
 
-def speak(text):
-    """Run pyttsx3 in a separate thread to avoid blocking Flask"""
-    threading.Thread(target=lambda: (engine.say(text), engine.runAndWait())).start()
+def speak(text):                                                               #def fn, fn = speak and parameter =text
+    """Run pyttsx3 in a separate thread to avoid blocking Flask"""                     #start() is for start new thread
+    threading.Thread(target=lambda: (engine.say(text), engine.runAndWait())).start()      #creates new thread so that it can run independently from main flask server
+                                                                                            #w/o threading it will pause or block flask or freeze
+                                                                                      #lambda defines small anonymous fn queues, process and speaks it makes assistant talk
+# ============ FLASK APP ============(bridge)
+app = Flask(__name__)                                                         # creates mini web server listens req of html/css/js #special built in variable used by python to identify the module
+CORS(app)                                                                   # this allows frontend to connect with flask backend safely
+@app.route("/process", methods=["POST"])                                    # defines route  #frontends send recognised voice tt command
+def process_command():                                                     
+    data = request.get_json()                                                #reads json(data in structured format) data sent from frontend
+    if not data or "text" not in data:                                           #that the incoming req is actually a text
+        return jsonify({"reply": "Invalid request."})                              # helper fn of flask, convert py data to json format
 
-# ============ FLASK APP ============
-app = Flask(__name__)
-CORS(app)
-@app.route("/process", methods=["POST"])
-def process_command():
-    data = request.get_json()
-    if not data or "text" not in data:
-        return jsonify({"reply": "Invalid request."})
-
-    text = data["text"].lower().strip()
-    print(f"🗣 Command received: {text}")
+    text = data["text"].lower().strip()                                       #coverts text to lowercae for easier comparison and prt user,s command to console
+    print(f"🗣 Command received: {text}")                                                
 
     # Default response
     response_text = "Sorry, I didn’t understand that."
@@ -121,6 +122,6 @@ def process_command():
     return jsonify({"reply": response_text})
 
 # ============ MAIN ============
-if __name__ == "__main__":
-    print("🚀 Backend server running on http://localhost:5000")
-    app.run(host="0.0.0.0", port=5000)
+if __name__ == "__main__":             #checks the file is directly being run (not imported into another)
+    print("🚀 Backend server running on http://localhost:5000")                        # if true this code executes server starts
+    app.run(host="0.0.0.0", port=5000)                          # starts server on port 5000
